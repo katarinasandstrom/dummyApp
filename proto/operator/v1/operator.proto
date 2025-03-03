@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto.operator.v1;
+
+option go_package = "dummyApp/gen/proto/operator/v1;operatorv1";
+
+
+enum Operator {
+    EQUALS = 0;
+    LIKE = 1;
+    GREATER_THAN = 3;
+    GREATER_THAN_OR_EQUALS = 4;
+    LESS_THAN = 5;
+    LESS_THAN_OR_EQUALS = 6;
+    IN = 7;
+}

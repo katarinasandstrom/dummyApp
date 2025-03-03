@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package proto.relation.v1;
+
+option go_package = "dummyApp/gen/proto/relation/v1;relationv1";
+
+
+import "proto/operator/v1/operator.proto";
+
+import "buf/validate/validate.proto";
+
+message Relation {
+  string artist_id = 1 [(buf.validate.field).string.uuid = true];
+  string reporter_id = 2 [(buf.validate.field).string.uuid = true];
+  optional string permission_id = 3 [(buf.validate.field).string.uuid = true];
+
+  optional string artist_name = 4;
+  optional string reporter_firstname = 5;
+  optional string reporter_lastname = 6;
+  optional string permission_name = 7;
+}
+
+message ListRequest {
+  optional string artist_id = 1 [(buf.validate.field).string.uuid = true];
+  optional string permission_id = 2 [(buf.validate.field).string.uuid = true];
+  optional string reporter_id = 3 [(buf.validate.field).string.uuid = true];
+  RelationFilter filter = 4;
+  SortEnum sort = 5 [(buf.validate.field).enum.defined_only = true];
+  bool desc = 6;
+  int64 limit = 7;
+  int64 offset = 8;
+}
+
+message ListResponse {
+  int64 count = 1;
+  repeated Relation relations = 2;
+}
+
+message RelationFilter {
+  FieldEnum field = 1 [(buf.validate.field).enum.defined_only = true];
+  string value = 2 [(buf.validate.field).string.pattern = "^[\\p{L}\\p{N}+<=>£^~#%&*@ [\\]{|}!\"'’) (,_.\\/:?\r\n-]*$"];
+  proto.operator.v1.Operator operator = 3;
+}
+
+enum FieldEnum {
+  FIELD_ARTIST_NAME = 0;
+  FIELD_REPORTER_FIRSTNAME = 1;
+  FIELD_REPORTER_LASTNAME = 2;
+  FIELD_PERMISSION_NAME = 3;
+}
+
+enum SortEnum {
+  SORT_ARTIST_NAME = 0;
+  SORT_REPORTER_FIRSTNAME = 1;
+  SORT_REPORTER_LASTNAME = 2;
+  SORT_PERMISSION_NAME = 3;
+}
+
+service RelationService {
+  rpc Create(Relation) returns (Relation) {}
+  rpc List(ListRequest) returns (ListResponse) {}
+  rpc Update(Relation) returns (Relation) {}
+}

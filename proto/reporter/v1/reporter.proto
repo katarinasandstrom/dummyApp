@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package proto.reporter.v1;
+
+option go_package = "dummyApp/gen/proto/reporter/v1;reporterv1";
+
+
+import "proto/operator/v1/operator.proto";
+import "proto/relation/v1/relation.proto";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "buf/validate/validate.proto";
+
+message Reporter {
+  optional string id = 1 [(buf.validate.field).string.uuid = true];
+  optional string user_id = 2 [(buf.validate.field).string.uuid = true];
+  optional bool be_contacted = 3;
+  optional string email = 4 [(buf.validate.field).string.email = true];
+  optional string firstname = 5 [(buf.validate.field).string.pattern = "^[\\p{L}\\p{N}+<=>£^~#%&*@ [\\]{|}!\"'’) (,_.\\/:?\r\n-]*$"];
+  optional string lastname = 6 [(buf.validate.field).string.pattern = "^[\\p{L}\\p{N}+<=>£^~#%&*@ [\\]{|}!\"'’) (,_.\\/:?\r\n-]*$"];
+  optional string phone = 7 [
+   // (buf.validate.field).ignore_empty = true,
+    (buf.validate.field).string.pattern = "^\\+{0,1}\\d((-| {0,1})\\d|\\d)*$"
+  ];
+  optional StatusEnum status = 8 [(buf.validate.field).enum.defined_only = true];
+
+  optional string created_at = 9;
+  optional string created_by = 10;
+  optional string updated_at = 11;
+  optional string updated_by = 12;
+
+  repeated proto.relation.v1.Relation relations = 13;
+  repeated Setlist setlists = 14;
+
+  optional google.protobuf.FieldMask fields = 15;
+}
+
+message GetRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message ListRequest {
+  ReporterFilter filter = 1;
+  SortEnum sort = 2 [(buf.validate.field).enum.defined_only = true];
+  bool desc = 3;
+  int64 limit = 4;
+  int64 offset = 5;
+}
+
+message ListResponse {
+  int64 count = 1;
+  repeated Reporter reporters = 2;
+}
+
+message Setlist {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string reporter_id = 2 [(buf.validate.field).string.uuid = true];
+  optional string name = 3;
+}
+
+message ReporterFilter {
+  FieldEnum field = 1 [(buf.validate.field).enum.defined_only = true];
+  string value = 2 [(buf.validate.field).string.pattern = "^[\\p{L}\\p{N}+<=>£^~#%&*@ [\\]{|}!\"'’) (,_.\\/:?\r\n-]*$"];
+  proto.operator.v1.Operator operator = 3;
+}
+
+enum FieldEnum {
+  FIELD_ID = 0;
+  FIELD_USER_ID = 1;
+  FIELD_FIRSTNAME = 2;
+  FIELD_LASTNAME = 3;
+}
+
+enum SortEnum {
+  SORT_FIRSTNAME = 0;
+  SORT_LASTNAME = 1;
+  SORT_STATUS = 2;
+}
+
+enum StatusEnum {
+  active = 0;
+  locked = 1;
+}
+
+service ReporterService {
+  rpc Create(Reporter) returns (Reporter) {}
+  rpc Get(GetRequest) returns (Reporter) {}
+  rpc List(ListRequest) returns (ListResponse) {}
+  rpc Update(Reporter) returns (Reporter) {}
+
+  rpc AddRelation(proto.relation.v1.Relation) returns (google.protobuf.Empty) {}
+  rpc RemoveRelation(proto.relation.v1.Relation) returns (google.protobuf.Empty) {}
+
+  rpc AddSetlist(Setlist) returns (google.protobuf.Empty) {}
+  rpc RemoveSetlist(Setlist) returns (google.protobuf.Empty) {}
+}
