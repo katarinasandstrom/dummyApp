@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -19,8 +20,8 @@ type AuthResponse struct {
 // Hämta en access token från authorization server
 func GetJWT() (string, error) {
 	// Hämta credentials (Ska ej ligga här. Lägg till i .env-fil senare!!)
-	clientID := "6e8ae61d-a721-4efa-a0ab-0c469269f6e8"
-	clientSecret := "dnRFPIv1OsHAmEo7"
+	clientID := os.Getenv("CLIENT_ID")
+	clientSecret := os.Getenv("CLIENT_SECRET")
 	authURL := "https://test-user.stim.se/token"
 
 	// Data-form payload
@@ -36,7 +37,7 @@ func GetJWT() (string, error) {
 		return "", err
 	}
 
-	// Headers
+	// Lägg till headers
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Skicka request

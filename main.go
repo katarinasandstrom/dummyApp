@@ -12,6 +12,7 @@ import (
 	"dummyApp/proto/reporter/v1/reporterv1connect"
 
 	"connectrpc.com/connect"
+	"github.com/joho/godotenv"
 	// relationv1 "dummyApp/gen/proto/relation/v1"
 	// operatorv1 "dummyApp/gen/proto/operator/v1"
 )
@@ -22,6 +23,10 @@ type client struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
 
 	//Steg 1: JWT-anrop
 	jwt, err := auth.GetJWT()
@@ -30,7 +35,7 @@ func main() {
 	}
 	fmt.Println("JWT fetched:", jwt)
 
-	// Steg 2: Skapa en klient
+	// Steg 2: Skapa en backstage-klient (Var ska urlen ligga eg?)
 	client := NewClient("https://test-backstage.stim.se", log.Default())
 
 	// Steg 3: Hämta listan av reporters
@@ -67,6 +72,7 @@ func (c *client) ListReporters(ctx context.Context, jwt string) (*reporterv1.Lis
 		Offset: 0,
 	})
 
+	//Sätt header, skicka med JWT
 	req.Header().Set("Authorization", "Bearer "+jwt)
 	req.Header().Set("Stim-App", "Backstage")
 
@@ -83,17 +89,17 @@ func (c *client) ListAllReporters(ctx context.Context, jwt string) {
 	limit := 50       // Hämta 50 åt gången
 	totalFetched := 0 // Räknar antalet hämtade totalt, numrering
 
-	logFile, err := os.OpenFile("reporters.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	logFile, err := os.OpenFile("reporters.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644) //Logga listan av reporters
 	//O_CREATE => Skapar filen om den inte finns, O_WRONLY öppnar i WriteOnly,
 	//  O_TRUNC skriver över gammalt innehåll
 	if err != nil {
-		fmt.Errorf("Kunde inte öppna loggfilen: %w", err)
+		fmt.Errorf("Could not open log file: %w", err)
 	}
 
 	defer logFile.Close()
 	logger := log.New(logFile, "", log.LstdFlags)
 
-	for {
+	for { //loopa igenom hela listan, hämta 50 i taget (paginering)
 		req := connect.NewRequest(&reporterv1.ListRequest{
 			Limit:  int64(limit),
 			Offset: int64(offset),
@@ -104,9 +110,10 @@ func (c *client) ListAllReporters(ctx context.Context, jwt string) {
 
 		resp, err := c.reporter.List(ctx, req)
 		if err != nil {
-			fmt.Errorf("Kunde inte hämta reporters: %w", err)
+			fmt.Errorf("Failed to get reporters: %w", err)
 		}
 
+		//
 		for _, r := range resp.Msg.Reporters {
 			totalFetched++
 
@@ -126,13 +133,13 @@ func (c *client) ListAllReporters(ctx context.Context, jwt string) {
 			}
 
 			// Skapa och logga formaterad sträng
-			entry := fmt.Sprintf("[%d] ID: %s, Namn: %s %s", totalFetched, id, firstname, lastname)
+			entry := fmt.Sprintf("[%d] ID: %s, Name: %s %s", totalFetched, id, firstname, lastname)
 			logger.Println(entry)
 		}
 
 		allReporters = append(allReporters, resp.Msg.Reporters...)
 
-		// Om vi fick färre än "limit", då är vi klara
+		// Om vi fick färre än "limit", avsluta
 		if len(resp.Msg.Reporters) < limit {
 			break
 		}
